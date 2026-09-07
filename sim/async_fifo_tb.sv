@@ -31,8 +31,8 @@ module async_fifo_tb();
     ) dut1(
         .wclk(wclk),
         .rclk(rclk),
-        .wrst(wrst),
-        .rrst(rrst),
+        .wrst(wrst), // raw async resets
+        .rrst(rrst), 
         .wr_en(wr_en),
         .rd_en(rd_en),
         .din(din),
@@ -74,13 +74,14 @@ module async_fifo_tb();
             rrst = 1;
             @(posedge rclk) #1 rrst = 0;
         end
-        wait(empty);
+        wait(!dut1.wrst_sync && !dut1.rrst_sync);
+        
         $display("Begin Tests");
         
         $display("Test 1: Normal write/read");
         write_byte(8'hAA); // dout should instantly show AA
         attempt_read_now(); 
-        $display("Test 1 (collision) first read should fail - empty flag: %b = 1 and dout %h = AA", 
+        $display("Test 1 (collision) first read should fail - empty flag: %b = 1 and dout %h = aa", 
             empty, dout); 
         wait(!empty);
         read_byte();
@@ -95,11 +96,11 @@ module async_fifo_tb();
             rrst = 1;
             @(posedge rclk) #1 rrst = 0;
         end
-        wait(empty);
+        wait(!dut1.wrst_sync && !dut1.rrst_sync);
         
         $display("Test 2: Read when empty");
         #1 read_byte();
-        $display("Test 2 empty flag: %b = 1 and dout %h = AA", empty, dout); 
+        $display("Test 2 empty flag: %b = 1 and dout %h = aa", empty, dout); 
         
         $display("Test 3: Full fifo");
         for (int i = 0; i < 16; i++) begin
@@ -128,7 +129,7 @@ module async_fifo_tb();
             rrst = 1;
             @(posedge rclk) #1 rrst = 0;
         end
-        wait(empty);
+        wait(!dut1.wrst_sync && !dut1.rrst_sync);
         
         $display("Test 6: Successful same-cycle read + write");
         #1 write_byte(8'hCC); // write a byte first to ensure fifo is not empty
@@ -138,7 +139,7 @@ module async_fifo_tb();
             read_byte();
         join
         wait(!empty);
-        $display("SIMUL full flag: %b = 0, empty flag: %b = 0, and dout %h = DD", 
+        $display("SIMUL full flag: %b = 0, empty flag: %b = 0, and dout %h = dd", 
         full, empty, dout); // wait a while to ensure all values settle on both clock cycles
         
         $finish;
